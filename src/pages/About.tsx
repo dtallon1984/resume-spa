@@ -35,12 +35,16 @@ const About: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-xl p-8 shadow-lg">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <User className="text-blue-600" />
-          About Me
-        </h2>
-        <p className="text-gray-700 leading-relaxed text-lg">{profileData.summary}</p>
-      </div>
+  <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+    <User className="text-blue-600" />
+    About Me
+  </h2>
+  {profileData.summary.map((para, idx) => (
+    <p key={idx} className="text-gray-700 leading-relaxed text-lg mb-4">
+      {para}
+    </p>
+  ))}
+</div>
 
       <div className="bg-white rounded-xl p-8 shadow-lg">
         <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">

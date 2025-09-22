@@ -37,7 +37,7 @@ export interface ProfileData {
   phone: string;
   location: string;
   github: string;
-  summary: string;
+  summary: string[];
   skills: Skill[];
   experience: Experience[];
   projects: Project[];

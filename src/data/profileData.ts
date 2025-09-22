@@ -9,10 +9,14 @@ export const profileData: ProfileData = {
   phone: "+1(708)323-8561",
   location: "Thompson's Station, TN",
   github: "https://github.com/dtallon1984",
-  summary: "Results-driven technology leader with over a decade of experience guiding organizations from startup through scale and acquisition. " + 
-            "I specialize in defining a clear technical vision, aligning engineering strategy with business goals, and building high-performing teams. " + 
-            "My unique approach blends executive leadership with hands-on technical depth - I actively contribute to architecture and the code-base to accelerate delivery, strengthen credibility, and mentor my engineers.",
-  skills: [
+  summary: [
+  "I’m a results-driven technology leader with over a decade of experience guiding organizations from startup through scale and acquisition. My sweet spot is where business strategy and deep technical execution intersect: defining the vision, setting the architecture, and building teams that deliver at speed.",
+  "I thrive in cloud-based SaaS environments, particularly enterprise-grade platforms where scale, performance, and customer satisfaction are mission-critical. While industry verticals are less important to me, I’m especially energized by opportunities to apply AI, machine learning, and data science to drive new value — whether as a core capability or as a new feature set.",
+  "My leadership philosophy centers on empowering autonomy. I encourage teams to trust their intuition, learn by doing, and fail fast — creating a culture where engineers grow quickly and innovation accelerates. I’m equally comfortable building teams from the ground up or joining an established team to learn their strengths and amplify their success.",
+  "At the core, my strengths are dual: I’m a capable hands-on engineer who can dig into architecture and code, but my true talent is seeing the bigger picture — aligning technology with business goals and translating complex requirements into creative, scalable solutions. This balance is sharpened by my early experience in retail and service industries, which gave me a customer-first mindset I still apply today: every stakeholder, whether internal or external, is a customer of Engineering and IT.",
+  "I’ve always been a tinkerer at heart. From taking apart electronics as a kid to tearing down applications today, I seek to understand how things work — and then make them better. That drive fuels my passion for building and scaling products, mentoring engineers, and helping organizations achieve ambitious outcomes."
+],
+skills: [
     { category: "Leadership", items: ["Team Building",
     "Mentoring & Coaching",
     "Strategic Planning",
