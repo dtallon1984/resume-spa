@@ -26,7 +26,7 @@ export const profileData: ProfileData = {
     "Tailwind CSS | CSS3 | PostCSS",
     "HTML5 & Semantic Markup",
     "Responsive & Mobile-first Design",
-    "Accessibility (a11y)"], level: 90 },
+    "Accessibility (a11y)"], level: 87 },
     { category: "Backend", items:[
     ".NET / C#",
     "Node.js / Express",
@@ -48,7 +48,21 @@ export const profileData: ProfileData = {
     "Serverless Architecture (AWS Lambda, Azure Functions)",
     "Monitoring & Logging",
     "Infrastructure as Code (Terraform, ARM Templates)",
-    "Cloud Security Best Practices"], level: 90 },
+    "Cloud Security Best Practices"], level: 87 },
+    { 
+  category: "Machine Learning | AI", 
+  items: [
+    "Python", 
+    "R", 
+    "Pandas", 
+    "NumPy", 
+    "scikit-learn", 
+    "TensorFlow", 
+    "OpenAI API", 
+    "Data Visualization (Matplotlib, Seaborn, Plotly)"
+  ], 
+  level: 85 
+},
     { category: "Tools", items: [ "Git / GitHub / GitLab",
     "Python / Scripting",
     "Jest / Testing Library",
@@ -58,7 +72,7 @@ export const profileData: ProfileData = {
     "Postman / API Testing",
     "VSCode / Productivity Plugins",
     "ESLint / Prettier / Code Quality",
-    "Docker CLI / Compose"], level: 90 }
+    "Docker CLI / Compose"], level: 82 }
   ],
   experience: [
     {

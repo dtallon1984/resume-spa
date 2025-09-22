@@ -9,7 +9,7 @@ const SkillBar: React.FC<SkillBarProps> = ({ skill }) => (
   <div className="mb-4">
     <div className="flex justify-between items-center mb-2">
       <h4 className="font-semibold text-gray-800">{skill.category}</h4>
-      <span className="text-sm text-gray-600">{skill.level}%</span>
+      {/* <span className="text-sm text-gray-600">{skill.level}%</span> */}
     </div>
     <div className="bg-gray-200 rounded-full h-3">
       <div
