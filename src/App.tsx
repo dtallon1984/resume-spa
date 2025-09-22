@@ -21,7 +21,7 @@ function App() {
               <Route path="/chat" element={<Chat />} />
             </Routes>
           </main>
-            <Footer email="dtallon1984@gmail.com" github="github.com/davidtallon" />
+            <Footer email="dtallon1984@gmail.com" github="github.com/dtallon1984" />
         </div>
       </div>
     </Router>
