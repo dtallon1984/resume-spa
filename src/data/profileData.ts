@@ -12,72 +12,113 @@ export const profileData: ProfileData = {
             "I specialize in defining a clear technical vision, aligning engineering strategy with business goals, and building high-performing teams. " + 
             "My unique approach blends executive leadership with hands-on technical depth - I actively contribute to architecture and the code-base to accelerate delivery, strengthen credibility, and mentor my engineers.",
   skills: [
-    { category: "Leadership", items: ["Team Building", "etc"], level: 99 },
-    { category: "Frontend", items: ["React", "TypeScript", "Next.js", "Tailwind CSS", "Vue.js"], level: 90 },
-    { category: "Backend", items: ["Node.js", "Python", "PostgreSQL", "MongoDB", "GraphQL"], level: 95 },
-    { category: "Cloud", items: ["Azure", "Docker", "Kubernetes", "CI/CD", "Serverless"], level: 90 },
-    { category: "Tools", items: ["Git", "Jest", "Webpack", "Figma", "Jira"], level: 90 }
+    { category: "Leadership", items: ["Team Building",
+    "Mentoring & Coaching",
+    "Strategic Planning",
+    "Decision Making",
+    "Conflict Resolution",
+    "Cross-functional Collaboration",
+    "Stakeholder Communication"], level: 99 },
+    { category: "Frontend", items: [ "React",
+    "TypeScript",
+    "Next.js",
+    "Tailwind CSS | CSS3 | PostCSS",
+    "HTML5 & Semantic Markup",
+    "Responsive & Mobile-first Design",
+    "Accessibility (a11y)"], level: 90 },
+    { category: "Backend", items:[
+    ".NET / C#",
+    "Node.js / Express",
+    "Java",
+    "SQL Server",
+    "PostgreSQL",
+    "MongoDB",
+    "GraphQL",
+    "RESTful API Design",
+    "Microservices Architecture",
+    "Caching (Redis, Memcached)",
+    "Unit & Integration Testing"
+  ], level: 95 },
+    { category: "Cloud", items: ["Azure",
+    "AWS",
+    "Docker / Containers",
+    "Kubernetes / Orchestration",
+    "CI/CD Pipelines (GitHub Actions, Azure DevOps)",
+    "Serverless Architecture (AWS Lambda, Azure Functions)",
+    "Monitoring & Logging",
+    "Infrastructure as Code (Terraform, ARM Templates)",
+    "Cloud Security Best Practices"], level: 90 },
+    { category: "Tools", items: [ "Git / GitHub / GitLab",
+    "Python / Scripting",
+    "Jest / Testing Library",
+    "Webpack / Vite / Parcel",
+    "Figma / Design Handoff",
+    "Jira / Agile Tools",
+    "Postman / API Testing",
+    "VSCode / Productivity Plugins",
+    "ESLint / Prettier / Code Quality",
+    "Docker CLI / Compose"], level: 90 }
   ],
   experience: [
     {
       company: "BDP International / PSA Group",
       position: "Engineering Director",
       duration: "Aug 2021 - Present",
-      description: "Led team of customer-facing dashboard serving 100k+ users. Reduced page load times by 40% through optimization.",
-      achievements: ["Built real-time analytics platform", "Mentored 3 junior developers", "Implemented CI/CD pipeline"]
+      description: "Led a cross-functional team integrating multiple internal platforms across legacy and new client systems, ensuring seamless transitions and high customer satisfaction.",
+      achievements: ["Delivered cloud-native technology solutions that cut costs and met SLA commitments.", "Maintained high customer satisfaction throughout platform migrations.", "Guided a multi-team engineering group across diverse products.", "Built a real-time analytics platform and implemented CI/CD pipelines."]
     },
     {
-      company: "Bridgenet Solutions",
+      company: "Bridgenet Solutions, LLC",
       position: "Software Architect",
       duration: "Nov 2019 - Aug 2021",
-      description: "Balanced leadership with hands-on contributions to architecture and coding, reinforcing technical credibility and mentoring the team",
-      achievements: ["Built payment processing system", "Designed responsive mobile-first UI", "Integrated third-party APIs"]
+      description: "Served as principal engineer and architect, building a team that delivered a lean, cutting-edge cloud solution from concept to scalable enterprise system. Mentored engineers while contributing hands-on to architecture and development.",
+      achievements: ["Designed and implemented a scalable cloud platform that became the core of a large enterprise EDI integration system.", "Built and led a high-performing engineering team from scratch.", "Delivered a production-ready solution within the first year, leading to acquisition by an investment group and subsequently by BDP International." ]
     }, 
     {
       company: "Evolent Health",
       position: "Senior Software Engineering Manager",
       duration: "Mar 2016 - Oct 2019",
-      description: "Led team of customer-facing dashboard serving 100k+ users. Reduced page load times by 40% through optimization.",
-      achievements: ["Built real-time analytics platform", "Mentored 3 junior developers", "Implemented CI/CD pipeline"]
+      description: "Led a cross-functional engineering team supporting and modernizing legacy healthcare platforms while delivering new applications to meet security and reporting requirements. Hired and mentored junior engineers to maintain high business and regulatory standards.",
+      achievements: ["Mentored and developed junior engineers, fostering a high-performing team.", "Supported and optimized legacy on-prem solutions", "Built new reporting and analytics solutions to support government contract requirements"]
     },
     {
       company: "Zirmed",
       position: "Senior Software Engineer",
       duration: "Jul 2015 - Mar 2016",
-      description: "Balanced leadership with hands-on contributions to architecture and coding, reinforcing technical credibility and mentoring the team",
-      achievements: ["Built payment processing system", "Designed responsive mobile-first UI", "Integrated third-party APIs"]
+      description: "Modernized a hospital billing application during an acquisition process, collaborating closely with business users and senior architects to improve usability and performance. Recognized by executive leadership for efficiency and high performance.",
+      achievements: ["Modernized legacy healthcare billing applications using .NET and SQL Server.", "Improved page load performance by 50–80%, delivering a faster, more responsive UI.", "Collaborated with cross-functional teams to ensure high-quality software delivery.", "Received recognition from executive leadership for outstanding performance."]
     }
   ],
   projects: [
     {
-      name: "E-commerce Platform",
-      description: "Full-featured online store with cart, payments, and admin dashboard",
-      tech: ["React", "Node.js", "Stripe", "MongoDB"],
-      demoUrl: "https://demo1.example.com",
-      githubUrl: "https://github.com/alexjohnson/ecommerce",
-      image: "🛍️"
+      name: "Schema Scout EDI Platform",
+      description: "Full Featured EDI translation and integration platform",
+      tech: ["React", "Node.js", "MongoDB", "Auth0", "Tailwind"],
+      demoUrl: "https://schema-scout.vercel.app/",
+        githubUrl: "https://github.com/dtallon1984",
+      image: "🛄"
     },
     {
-      name: "Task Management App",
+      name: "WorkWithMe Task Manager",
       description: "Collaborative project management tool with real-time updates",
-      tech: ["Vue.js", "Express", "Socket.io", "PostgreSQL"],
-      demoUrl: "https://demo2.example.com",
-      githubUrl: "https://github.com/alexjohnson/taskmanager",
+      tech: ["React", "Node.js", "MongoDB", "Auth0", "Tailwind"],
+      demoUrl: "https://work-with-me-orcin.vercel.app/dashboard",
+      githubUrl: "https://github.com/dtallon1984",
       image: "📋"
     },
     {
-      name: "Weather Dashboard",
-      description: "Beautiful weather app with forecasts and interactive maps",
-      tech: ["React", "D3.js", "Weather API", "Tailwind"],
-      demoUrl: "https://demo3.example.com",
-      githubUrl: "https://github.com/alexjohnson/weather",
-      image: "🌤️"
+      name: "Demo Dashboard",
+      description: "Demo dashboard application and components showcasing React and Tailwind skills",
+      tech: ["React", "Tailwind", "Google Maps API", "DataTables"],
+      demoUrl: "https://react-dashboard-demo-three.vercel.app/",
+      githubUrl: "https://github.com/dtallon1984/react-dashboard-portfolio",
+      image: "📊"
     }
   ],
   criteria: {
-    salaryRange: "$120k - $180k",
-    roleLevel: "Senior Developer / Tech Lead",
-    preferredTech: ["React", "Node.js", "TypeScript", "AWS", "Python"],
+    salaryRange: "$225k - $275k",
+    roleLevel: "Executive / Director",
+    preferredTech: ["React", "Node.js", "TypeScript", "Azure", "AWS", "Mongo", "SQL", ".NET", "Python"],
     workStyle: "Remote or Hybrid",
     companySize: "50-500 employees"
   }
