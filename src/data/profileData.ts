@@ -2,6 +2,7 @@ import type { ProfileData } from '../types/profile';
 //import { User, Briefcase, Code, MessageCircle, Zap, Award } from 'lucide-react';
 
 export const profileData: ProfileData = {
+  avatarUrl:"/headshot.jpg",
   name: "David Scott Tallon Jr.",
   title: "Technology Leader | Enterprise Solutions Architect | Full Stack Developer",
   email: "dtallon1984@gmail.com",

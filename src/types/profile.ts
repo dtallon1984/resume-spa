@@ -30,6 +30,7 @@ export interface Criteria {
 }
 
 export interface ProfileData {
+    avatarUrl: string;
   name: string;
   title: string;
   email: string;
