@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     messages,
   });
 
-  res.status(200).json({ response: completion.choices[0].message });
+  res.status(200).json({ message: completion.choices[0].message.content });
 } catch (err: unknown) {
   console.error(err);
 
