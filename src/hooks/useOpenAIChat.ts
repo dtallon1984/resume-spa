@@ -1,6 +1,6 @@
-// hooks/useOpenAIChat.ts
 import { useState, useCallback } from 'react';
 import type { ProfileData } from '../types/profile';
+import { useProtectedChat } from './useProtectedChat';
 
 interface ChatMessage {
   type: 'user' | 'bot' | 'system';
@@ -8,12 +8,17 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-interface UseOpenAIChatProps {
+interface UseOpenAIProtectedChatProps {
   profileData: ProfileData;
   apiKey?: string;
+
+  // Optional chat protection options
+  maxMessagesPerHour?: number;
+  maxMessageLength?: number;
+  cooldownMs?: number;
 }
 
-export const useOpenAIChat = ({ profileData, apiKey }: UseOpenAIChatProps) => {
+export const useOpenAIProtectedChat = ({ profileData, apiKey }: UseOpenAIProtectedChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       type: 'bot',
@@ -23,7 +28,13 @@ export const useOpenAIChat = ({ profileData, apiKey }: UseOpenAIChatProps) => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const createSystemPrompt = useCallback(() => {
+  const protectedChat = useProtectedChat({
+    maxMessagesPerHour: 30,
+    maxMessageLength: 500,
+    cooldownMs: 2000
+  });
+
+const createSystemPrompt = useCallback(() => {
     return `You are an AI assistant representing ${profileData.name}, a ${profileData.title}. 
 
 IMPORTANT INSTRUCTIONS:
@@ -71,22 +82,59 @@ Remember: Stay focused on this information and be enthusiastic about ${profileDa
   }, [profileData]);
 
   const sendMessage = async (userMessage: string) => {
-    if (!apiKey) {
-      // Fallback to enhanced local response if no API key
-      return generateLocalResponse(userMessage);
+    // 1. Validate message content
+    const validation = protectedChat.validateMessage(userMessage);
+   if (!validation.valid) {
+  setMessages(prev => [
+    ...prev,
+    {
+      type: 'bot',
+      text: validation.reason ?? 'Invalid message.',
+      timestamp: new Date()
     }
+  ]);
+  return;
+}
+    // 2. Check rate limits
+    const rateCheck = protectedChat.checkRateLimit();
+    if (!rateCheck.allowed) {
+  setMessages(prev => [
+    ...prev,
+    {
+      type: 'bot',
+      text: rateCheck.reason ?? 'You are sending messages too quickly.',
+      timestamp: new Date()
+    }
+  ]);
+  return;
+}
 
-    setIsLoading(true);
-    
+    // 3. Record the message (update counters)
+    protectedChat.recordMessage();
+
+    // 4. Add user message to chat
     const newUserMessage: ChatMessage = {
       type: 'user',
       text: userMessage,
       timestamp: new Date()
     };
-    
     setMessages(prev => [...prev, newUserMessage]);
 
+    setIsLoading(true);
+
     try {
+      if (!apiKey) {
+        // fallback to local response
+        const botMessage: ChatMessage = {
+          type: 'bot',
+          text: generateLocalResponse(userMessage),
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botMessage]);
+        return;
+      }
+
+      // OpenAI API request
       const conversationHistory = messages.slice(-10).map(msg => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
         content: msg.text
@@ -94,9 +142,7 @@ Remember: Stay focused on this information and be enthusiastic about ${profileDa
 
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [
             { role: 'system', content: createSystemPrompt() },
@@ -106,64 +152,49 @@ Remember: Stay focused on this information and be enthusiastic about ${profileDa
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
+      if (!response.ok) throw new Error('Failed to get response');
 
       const data = await response.json();
-      
+
       const botMessage: ChatMessage = {
         type: 'bot',
         text: data.message,
         timestamp: new Date()
       };
-      
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('Chat error:', error);
-      
-      // Fallback to local response
-      const fallbackResponse = generateLocalResponse(userMessage);
-      const botMessage: ChatMessage = {
+      const fallbackMessage: ChatMessage = {
         type: 'bot',
-        text: fallbackResponse,
+        text: generateLocalResponse(userMessage),
         timestamp: new Date()
       };
-      
-      setMessages(prev => [...prev, botMessage]);
+      setMessages(prev => [...prev, fallbackMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const generateLocalResponse = (userMessage: string) => {
-    // Enhanced local fallback (from the previous component)
     const lower = userMessage.toLowerCase();
-    
-    if (lower.includes('skill') || lower.includes('tech')) {
-      return `${profileData.name} specializes in ${profileData.skills.map(s => s.category).join(', ')}. Their strongest technologies include ${profileData.skills.flatMap(s => s.items).slice(0, 5).join(', ')}. What specific technology interests you?`;
+    if (lower.includes('skill')) {
+      return `${profileData.name} specializes in ${profileData.skills.map(s => s.category).join(', ')}.`;
     }
-    
-    if (lower.includes('experience') || lower.includes('work')) {
+    if (lower.includes('experience')) {
       const currentRole = profileData.experience[0];
-      return `${profileData.name} is currently a ${currentRole.position} at ${currentRole.company}. They've ${currentRole.description.toLowerCase()} Key achievements include: ${currentRole.achievements.slice(0, 2).join(' and ')}. Would you like to know more about their career journey?`;
+      return `${profileData.name} is currently a ${currentRole.position} at ${currentRole.company}.`;
     }
-    
-    if (lower.includes('project')) {
-      const randomProject = profileData.projects[Math.floor(Math.random() * profileData.projects.length)];
-      return `One of ${profileData.name}'s notable projects is ${randomProject.name} - ${randomProject.description} Built with ${randomProject.tech.join(', ')}. They have ${profileData.projects.length} featured projects total. Which type of project interests you most?`;
-    }
-    
-    if (lower.includes('hire') || lower.includes('opportunity')) {
-      return `${profileData.name} is exploring opportunities in the ${profileData.criteria.salaryRange} range for ${profileData.criteria.roleLevel} positions. They prefer ${profileData.criteria.workStyle} work with technologies like ${profileData.criteria.preferredTech.slice(0, 3).join(', ')}. Contact them at ${profileData.email} to discuss!`;
-    }
-    
-    return `That's a great question! ${profileData.name} has a lot to offer. Feel free to ask about their technical skills, professional experience, portfolio projects, or what they're looking for in their next role. What interests you most?`;
+    return `That's a great question! ${profileData.name} has a lot to offer.`;
   };
 
   return {
-    messages,
-    sendMessage,
-    isLoading
+     messages,
+  sendMessage,
+  isLoading,
+  messagesRemaining: protectedChat.messagesRemaining,
+  isRateLimited: protectedChat.isRateLimited,
+  checkRateLimit: protectedChat.checkRateLimit,
+  validateMessage: protectedChat.validateMessage,
+  recordMessage: protectedChat.recordMessage
   };
 };

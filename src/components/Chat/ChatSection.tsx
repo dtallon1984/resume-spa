@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, Send, Loader2, AlertTriangle } from 'lucide-react';
-import { useProtectedChat } from '../../hooks/useProtectedChat';
+import { useOpenAIProtectedChat } from '../../hooks/useOpenAIChat';
 import type { ProfileData } from '../../types/profile';
 
 interface ChatMessage {
@@ -33,10 +33,8 @@ const ChatSection: React.FC<ChatSectionProps> = ({ profileData }) => {
     isRateLimited,
     //messagesRemaining,
     //timeUntilReset
-  } = useProtectedChat({
-    maxMessagesPerHour: 25,
-    maxMessageLength: 400,
-    cooldownMs: 3000
+  } = useOpenAIProtectedChat({
+    profileData,
   });
 
   const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
