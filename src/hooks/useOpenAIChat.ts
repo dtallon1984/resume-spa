@@ -191,6 +191,7 @@ Remember: Stay focused on this information and be enthusiastic about ${profileDa
      messages,
   sendMessage,
   isLoading,
+  createSystemPrompt, 
   messagesRemaining: protectedChat.messagesRemaining,
   isRateLimited: protectedChat.isRateLimited,
   checkRateLimit: protectedChat.checkRateLimit,

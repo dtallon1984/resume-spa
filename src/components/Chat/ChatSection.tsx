@@ -31,6 +31,7 @@ const ChatSection: React.FC<ChatSectionProps> = ({ profileData }) => {
     validateMessage,
     recordMessage,
     isRateLimited,
+     createSystemPrompt
     //messagesRemaining,
     //timeUntilReset
   } = useOpenAIProtectedChat({
@@ -130,15 +131,6 @@ const ChatSection: React.FC<ChatSectionProps> = ({ profileData }) => {
 
     setInputMessage('');
   };
-
-  const createSystemPrompt = () => {
-    return `You are a professional AI assistant representing ${profileData.name}. Keep responses focused on their career, skills, and professional background. Be helpful but concise.`;
-  };
-
-  /* const formatTimeRemaining = (ms: number) => {
-    const minutes = Math.ceil(ms / 60000);
-    return minutes > 60 ? `${Math.ceil(minutes / 60)} hour(s)` : `${minutes} minute(s)`;
-  }; */
 
   return (
     <div className="bg-white rounded-xl shadow-lg h-[600px] flex flex-col">
