@@ -5,6 +5,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    console.log('send-email API invoked', req.body);
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
