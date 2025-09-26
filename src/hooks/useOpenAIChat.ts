@@ -175,58 +175,54 @@ const sendMessage = async (userMessage: string) => {
 
     const data = await response.json();
 
-    let parsed: MeetingRequestData | null = null;
+   let parsed: MeetingRequestData | null = null;
 
-// Try to extract JSON from triple-backtick fenced block first
-const jsonMatch = typeof data.message === "string" 
-  ? data.message.match(/```json([\s\S]*?)```/) 
-  : null;
-
-if (jsonMatch) {
-  try {
+   // Extract JSON block if exists
+const jsonMatch = data.message.match(/```json([\s\S]*?)```/);
+try {
+  if (jsonMatch) {
     parsed = JSON.parse(jsonMatch[1].trim());
-  } catch (err) {
-    console.error("Failed to parse JSON block:", err);
+  } else {
+    parsed = JSON.parse(data.message);
   }
-} else {
-  // fallback: maybe AI returned raw JSON
-  try {
-    parsed = typeof data.message === "string" ? JSON.parse(data.message) : data;
-  } catch {
-    parsed = null;
-  }
+} catch (err) {
+  console.error('Failed to parse JSON:', err, data.message);
 }
 
+try {
+  parsed = JSON.parse(data.message); // <- parse the string
+} catch (err) {
+  console.error("Failed to parse AI message JSON:", err, data.message);
+}
 
-    if (parsed && parsed.action === "schedule_meeting" && parsed.data) {
-      // ✅ Show the draft email
-      setMessages(prev => [
-        ...prev,
-        {
-          type: 'bot',
-          text: `📧 Here’s a draft email:\n\n${parsed.draftEmail}`,
-          timestamp: new Date()
-        }
-      ]);
+if (parsed && parsed.action === "schedule_meeting" && parsed.data) {
+  // Show draft email
+  setMessages(prev => [
+    ...prev,
+    { type: 'bot', text: `📧 Here’s a draft email:\n\n${parsed.draftEmail}`, timestamp: new Date() }
+  ]);
 
-      // ✅ Send the email via API
-      try {
-        await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(parsed.data),
-        });
-        setMessages(prev => [
-          ...prev,
-          { type: 'system', text: "✅ Meeting request sent successfully!", timestamp: new Date() }
-        ]);
-      } catch (err) {
-        console.error("Email API failed", err);
-        setMessages(prev => [
-          ...prev,
-          { type: 'system', text: "⚠️ Could not send the email, please try again later.", timestamp: new Date() }
-        ]);
-      }
+  // Send email
+  try {
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(parsed.data),
+    });
+    const result = await response.json();
+    console.log('Email API response:', result);
+
+    setMessages(prev => [
+      ...prev,
+      { type: 'system', text: "✅ Meeting request sent successfully!", timestamp: new Date() }
+    ]);
+  } catch (err) {
+    console.error("Email API failed", err);
+    setMessages(prev => [
+      ...prev,
+      { type: 'system', text: "⚠️ Could not send the email, please try again later.", timestamp: new Date() }
+    ]);
+  }
     } else {
       // Normal response
       const botMessage: ChatMessage = {
