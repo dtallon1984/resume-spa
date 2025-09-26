@@ -49,6 +49,16 @@ IMPORTANT INSTRUCTIONS:
 - If asked about your origins say that David created you to help people learn about his professional background and career goals
 - If asked about availability or interest in a role, respond positively
 - Offer to set up a meeting or call to discuss further when contextually appropriate
+When the user requests to schedule a meeting:
+- Gather their Name, Company, Role, Phone, and Email.
+- Once you have all fields, respond with:
+  1. A clear meeting request email template.
+  2. A JSON object containing the details under a meetingRequest key.
+- Format the response exactly as follows:{
+    "action": "schedule_meeting",
+    "data": { "name": "...", "company": "...", "role": "...", "phone": "...", "email": "..." },
+    "draftEmail": "..."
+  }
 
 PROFILE INFORMATION:
 
@@ -84,99 +94,133 @@ What ${profileData.name} is looking for:
 Remember: Stay focused on this information and be enthusiastic about ${profileData.name}'s qualifications!`;
   }, [profileData]);
 
-  const sendMessage = async (userMessage: string) => {
-    // 1. Validate message content
-    const validation = protectedChat.validateMessage(userMessage);
-   if (!validation.valid) {
-  setMessages(prev => [
-    ...prev,
-    {
-      type: 'bot',
-      text: validation.reason ?? 'Invalid message.',
-      timestamp: new Date()
-    }
-  ]);
-  return;
-}
-    // 2. Check rate limits
-    const rateCheck = protectedChat.checkRateLimit();
-    if (!rateCheck.allowed) {
-  setMessages(prev => [
-    ...prev,
-    {
-      type: 'bot',
-      text: rateCheck.reason ?? 'You are sending messages too quickly.',
-      timestamp: new Date()
-    }
-  ]);
-  return;
-}
+const sendMessage = async (userMessage: string) => {
+  // 1. Validate message content
+  const validation = protectedChat.validateMessage(userMessage);
+  if (!validation.valid) {
+    setMessages(prev => [
+      ...prev,
+      { type: 'bot', text: validation.reason ?? 'Invalid message.', timestamp: new Date() }
+    ]);
+    return;
+  }
 
-    // 3. Record the message (update counters)
-    protectedChat.recordMessage();
+  // 2. Check rate limits
+  const rateCheck = protectedChat.checkRateLimit();
+  if (!rateCheck.allowed) {
+    setMessages(prev => [
+      ...prev,
+      { type: 'bot', text: rateCheck.reason ?? 'You are sending messages too quickly.', timestamp: new Date() }
+    ]);
+    return;
+  }
 
-    // 4. Add user message to chat
-    const newUserMessage: ChatMessage = {
-      type: 'user',
-      text: userMessage,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, newUserMessage]);
+  // 3. Record the message (update counters)
+  protectedChat.recordMessage();
 
-    setIsLoading(true);
+  // 4. Add user message to chat
+  const newUserMessage: ChatMessage = {
+    type: 'user',
+    text: userMessage,
+    timestamp: new Date()
+  };
+  setMessages(prev => [...prev, newUserMessage]);
 
-    try {
-      if (!apiKey) {
-        // fallback to local response
-        const botMessage: ChatMessage = {
-          type: 'bot',
-          text: generateLocalResponse(userMessage),
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, botMessage]);
-        return;
-      }
+  setIsLoading(true);
 
-      // OpenAI API request
-      const conversationHistory = messages.slice(-10).map(msg => ({
-        role: msg.type === 'user' ? 'user' : 'assistant',
-        content: msg.text
-      }));
-
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            { role: 'system', content: createSystemPrompt() },
-            ...conversationHistory,
-            { role: 'user', content: userMessage }
-          ]
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to get response');
-
-      const data = await response.json();
-
+  try {
+    // Fallback if no API key
+    if (!apiKey) {
       const botMessage: ChatMessage = {
-        type: 'bot',
-        text: data.message,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      const fallbackMessage: ChatMessage = {
         type: 'bot',
         text: generateLocalResponse(userMessage),
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, fallbackMessage]);
-    } finally {
-      setIsLoading(false);
+      setMessages(prev => [...prev, botMessage]);
+      return;
     }
-  };
+
+    // Build conversation history
+    const conversationHistory = messages.slice(-10).map(msg => ({
+      role: msg.type === 'user' ? 'user' : 'assistant',
+      content: msg.text
+    }));
+
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: createSystemPrompt() },
+          ...conversationHistory,
+          { role: 'user', content: userMessage }
+        ]
+      })
+    });
+
+    if (!response.ok) throw new Error('Failed to get response');
+
+    const data = await response.json();
+
+    let parsed;
+    try {
+      parsed = typeof data.message === "string" ? JSON.parse(data.message) : data;
+    } catch {
+      parsed = null; // Not JSON
+    }
+
+    if (parsed && parsed.action === "schedule_meeting" && parsed.data) {
+      // ✅ Show the draft email
+      setMessages(prev => [
+        ...prev,
+        {
+          type: 'bot',
+          text: `📧 Here’s a draft email:\n\n${parsed.draftEmail}`,
+          timestamp: new Date()
+        }
+      ]);
+
+      // ✅ Send the email via API
+      try {
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(parsed.data),
+        });
+        setMessages(prev => [
+          ...prev,
+          { type: 'system', text: "✅ Meeting request sent successfully!", timestamp: new Date() }
+        ]);
+      } catch (err) {
+        console.error("Email API failed", err);
+        setMessages(prev => [
+          ...prev,
+          { type: 'system', text: "⚠️ Could not send the email, please try again later.", timestamp: new Date() }
+        ]);
+      }
+    } else {
+      // Normal response
+      const botMessage: ChatMessage = {
+        type: 'bot',
+        text: data.message || "Sorry, I didn’t quite get that.",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, botMessage]);
+    }
+
+  } catch (error) {
+    console.error('Chat error:', error);
+    const fallbackMessage: ChatMessage = {
+      type: 'bot',
+      text: generateLocalResponse(userMessage),
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, fallbackMessage]);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const generateLocalResponse = (userMessage: string) => {
     const lower = userMessage.toLowerCase();
