@@ -18,6 +18,18 @@ interface UseOpenAIProtectedChatProps {
   cooldownMs?: number;
 }
 
+interface MeetingRequestData {
+  action: "schedule_meeting";
+  data: {
+    name: string;
+    company: string;
+    role: string;
+    phone: string;
+    email: string;
+  };
+  draftEmail: string;
+}
+
 export const useOpenAIProtectedChat = ({ profileData, apiKey }: UseOpenAIProtectedChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -59,6 +71,7 @@ When the user requests to schedule a meeting:
     "data": { "name": "...", "company": "...", "role": "...", "phone": "...", "email": "..." },
     "draftEmail": "..."
   }
+-When scheduling a meeting, respond only with a JSON object (no explanations, no markdown code fences).
 
 PROFILE INFORMATION:
 
@@ -162,12 +175,28 @@ const sendMessage = async (userMessage: string) => {
 
     const data = await response.json();
 
-    let parsed;
-    try {
-      parsed = typeof data.message === "string" ? JSON.parse(data.message) : data;
-    } catch {
-      parsed = null; // Not JSON
-    }
+    let parsed: MeetingRequestData | null = null;
+
+// Try to extract JSON from triple-backtick fenced block first
+const jsonMatch = typeof data.message === "string" 
+  ? data.message.match(/```json([\s\S]*?)```/) 
+  : null;
+
+if (jsonMatch) {
+  try {
+    parsed = JSON.parse(jsonMatch[1].trim());
+  } catch (err) {
+    console.error("Failed to parse JSON block:", err);
+  }
+} else {
+  // fallback: maybe AI returned raw JSON
+  try {
+    parsed = typeof data.message === "string" ? JSON.parse(data.message) : data;
+  } catch {
+    parsed = null;
+  }
+}
+
 
     if (parsed && parsed.action === "schedule_meeting" && parsed.data) {
       // ✅ Show the draft email
