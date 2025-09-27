@@ -70,9 +70,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else if (rawContent.trim().startsWith("{") && rawContent.trim().endsWith("}")) {
         parsed = JSON.parse(rawContent.trim());
       }
-    } catch (err) {
+    } catch {
       // Not a complete JSON — ignore, AI is likely asking follow-up questions
-      console.warn("Partial or invalid JSON, returning raw text to frontend.", err);
+      console.warn("Partial or invalid JSON, returning raw text to frontend.");
     }
 
     // If parsed meeting request is valid -> send emails
@@ -83,7 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .join("");
 
       try {
-        // 1️⃣ Send draft email to requester
+        // 1️⃣ Send draft email to requester (with CC to David)
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: email,
