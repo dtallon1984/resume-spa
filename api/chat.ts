@@ -6,7 +6,6 @@ import { Resend } from "resend";
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
-// Basic in-memory rate limiter (per function instance)
 let requestCount = 0;
 
 type MeetingRequestPayload = {
@@ -62,20 +61,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let parsed: MeetingRequestData | null = null;
 
-    // Only attempt to parse JSON if it looks like a full object
-    const jsonFenced = rawContent.match(/```json([\s\S]*?)```/i);
     try {
+      const jsonFenced = rawContent.match(/```json([\s\S]*?)```/i);
       if (jsonFenced) {
         parsed = JSON.parse(jsonFenced[1].trim());
       } else if (rawContent.trim().startsWith("{") && rawContent.trim().endsWith("}")) {
         parsed = JSON.parse(rawContent.trim());
       }
     } catch {
-      // Not a complete JSON — ignore, AI is likely asking follow-up questions
       console.warn("Partial or invalid JSON, returning raw text to frontend.");
     }
 
-    // If parsed meeting request is valid -> send emails
+    // ✅ If schedule_meeting JSON detected, handle emails and **do not return the JSON itself**
     if (parsed && isMeetingRequest(parsed)) {
       const { name, company, role, phone, email } = parsed.data;
       const chatHistoryHtml = messages
@@ -83,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .join("");
 
       try {
-        // 1️⃣ Send draft email to requester (with CC to David)
+        // 1️⃣ Send draft email to requester (CC to David)
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: email,
@@ -92,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           html: `<pre>${parsed.draftEmail}</pre>`,
         });
 
-        // 2️⃣ Send detailed email to David (you) with chat history
+        // 2️⃣ Send detailed email to David with chat history
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: "dtallon1984@gmail.com",
@@ -111,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           `,
         });
 
-        // 3️⃣ Return simple acknowledgment to frontend
+        // 3️⃣ Return only acknowledgment to frontend
         return res.status(200).json({
           message:
             "Your request for a meeting has been queued for David to review and he will get back to you shortly, thank you!",
@@ -126,9 +123,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Otherwise, just return raw content for frontend display (AI can ask follow-ups)
+    // Otherwise, return raw AI text (for follow-up questions)
     return res.status(200).json({ message: rawContent });
-
   } catch (err) {
     console.error("Chat API error:", err);
     const errorMessage = err instanceof Error ? err.message : "Something went wrong";
