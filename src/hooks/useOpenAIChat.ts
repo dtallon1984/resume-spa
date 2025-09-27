@@ -18,18 +18,6 @@ interface UseOpenAIProtectedChatProps {
   cooldownMs?: number;
 }
 
-interface MeetingRequestData {
-  action: "schedule_meeting";
-  data: {
-    name: string;
-    company: string;
-    role: string;
-    phone: string;
-    email: string;
-  };
-  draftEmail: string;
-}
-
 export const useOpenAIProtectedChat = ({ profileData, apiKey }: UseOpenAIProtectedChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -128,28 +116,24 @@ const sendMessage = async (userMessage: string) => {
     return;
   }
 
-  // 3. Record the message (update counters)
+  // 3. Record the message
   protectedChat.recordMessage();
 
   // 4. Add user message to chat
-  const newUserMessage: ChatMessage = {
-    type: 'user',
-    text: userMessage,
-    timestamp: new Date()
-  };
-  setMessages(prev => [...prev, newUserMessage]);
+  setMessages(prev => [
+    ...prev,
+    { type: 'user', text: userMessage, timestamp: new Date() }
+  ]);
 
   setIsLoading(true);
 
   try {
     // Fallback if no API key
     if (!apiKey) {
-      const botMessage: ChatMessage = {
-        type: 'bot',
-        text: generateLocalResponse(userMessage),
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botMessage]);
+      setMessages(prev => [
+        ...prev,
+        { type: 'bot', text: generateLocalResponse(userMessage), timestamp: new Date() }
+      ]);
       return;
     }
 
@@ -159,6 +143,7 @@ const sendMessage = async (userMessage: string) => {
       content: msg.text
     }));
 
+    // Call the backend chat API (which handles meeting scheduling & emails)
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -171,76 +156,22 @@ const sendMessage = async (userMessage: string) => {
       })
     });
 
-    if (!response.ok) throw new Error('Failed to get response');
+    if (!response.ok) throw new Error('Failed to get response from chat API');
 
     const data = await response.json();
 
-   let parsed: MeetingRequestData | null = null;
-
-   // Extract JSON block if exists
-const jsonMatch = data.message.match(/```json([\s\S]*?)```/);
-try {
-  if (jsonMatch) {
-    parsed = JSON.parse(jsonMatch[1].trim());
-  } else {
-    parsed = JSON.parse(data.message);
-  }
-} catch (err) {
-  console.error('Failed to parse JSON:', err, data.message);
-}
-
-try {
-  parsed = JSON.parse(data.message); // <- parse the string
-} catch (err) {
-  console.error("Failed to parse AI message JSON:", err, data.message);
-}
-
-if (parsed && parsed.action === "schedule_meeting" && parsed.data) {
-  // Show draft email
-  setMessages(prev => [
-    ...prev,
-    { type: 'bot', text: `📧 Here’s a draft email:\n\n${parsed.draftEmail}`, timestamp: new Date() }
-  ]);
-
-  // Send email
-  try {
-    const response = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(parsed.data),
-    });
-    const result = await response.json();
-    console.log('Email API response:', result);
-
+    // Display the message (backend handles all actions like sending emails)
     setMessages(prev => [
       ...prev,
-      { type: 'system', text: "✅ Meeting request sent successfully!", timestamp: new Date() }
+      { type: 'bot', text: data.message || "Sorry, I didn’t quite get that.", timestamp: new Date() }
     ]);
-  } catch (err) {
-    console.error("Email API failed", err);
-    setMessages(prev => [
-      ...prev,
-      { type: 'system', text: "⚠️ Could not send the email, please try again later.", timestamp: new Date() }
-    ]);
-  }
-    } else {
-      // Normal response
-      const botMessage: ChatMessage = {
-        type: 'bot',
-        text: data.message || "Sorry, I didn’t quite get that.",
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botMessage]);
-    }
 
   } catch (error) {
     console.error('Chat error:', error);
-    const fallbackMessage: ChatMessage = {
-      type: 'bot',
-      text: generateLocalResponse(userMessage),
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, fallbackMessage]);
+    setMessages(prev => [
+      ...prev,
+      { type: 'bot', text: generateLocalResponse(userMessage), timestamp: new Date() }
+    ]);
   } finally {
     setIsLoading(false);
   }
