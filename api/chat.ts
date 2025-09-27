@@ -61,23 +61,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("Raw model output:", rawContent);
 
     let parsed: MeetingRequestData | null = null;
-    let responseMessage = rawContent;
 
-    // Attempt to parse JSON only if it looks like JSON
+    // Only attempt to parse JSON if it looks like a full object
     const jsonFenced = rawContent.match(/```json([\s\S]*?)```/i);
     try {
       if (jsonFenced) {
         parsed = JSON.parse(jsonFenced[1].trim());
-        responseMessage = "";
-      } else if (rawContent.trim().startsWith("{")) {
+      } else if (rawContent.trim().startsWith("{") && rawContent.trim().endsWith("}")) {
         parsed = JSON.parse(rawContent.trim());
-        responseMessage = "";
       }
     } catch (err) {
-      console.warn("Failed to parse AI JSON, returning as text:", err);
+      // Not a complete JSON — ignore, AI is likely asking follow-up questions
+      console.warn("Partial or invalid JSON, returning raw text to frontend.", err);
     }
 
-    // Handle meeting request if present
+    // If parsed meeting request is valid -> send emails
     if (parsed && isMeetingRequest(parsed)) {
       const { name, company, role, phone, email } = parsed.data;
       const chatHistoryHtml = messages
@@ -86,25 +84,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       try {
         // 1️⃣ Send draft email to requester
-        const formattedDraftEmail = parsed.draftEmail
-  .split("\n")
-  .map(line => `<p>${line}</p>`)
-  .join("");
+        await resend.emails.send({
+          from: "onboarding@resend.dev",
+          to: email,
+          cc: "dtallon1984@gmail.com",
+          subject: "Your meeting request with David Tallon has been received",
+          html: `<pre>${parsed.draftEmail}</pre>`,
+        });
 
-      const userEmailResult = await resend.emails.send({
-  from: "onboarding@resend.dev",
-  to: "schemascout@gmail.com",
-  cc: "dtallon1984@gmail.com",
-  subject: "Your meeting request with David Tallon has been received",
-  html: `
-    <div>
-      ${formattedDraftEmail}
-    </div>
-  `,
-});
-console.log("Email to user result:", userEmailResult);
-
-        // 2️⃣ Send detailed email to David with chat history
+        // 2️⃣ Send detailed email to David (you) with chat history
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: "dtallon1984@gmail.com",
@@ -123,7 +111,7 @@ console.log("Email to user result:", userEmailResult);
           `,
         });
 
-        // 3️⃣ Respond to frontend with simple acknowledgment
+        // 3️⃣ Return simple acknowledgment to frontend
         return res.status(200).json({
           message:
             "Your request for a meeting has been queued for David to review and he will get back to you shortly, thank you!",
@@ -138,8 +126,8 @@ console.log("Email to user result:", userEmailResult);
       }
     }
 
-    // Not a scheduling action — return raw content to frontend
-    return res.status(200).json({ message: responseMessage });
+    // Otherwise, just return raw content for frontend display (AI can ask follow-ups)
+    return res.status(200).json({ message: rawContent });
 
   } catch (err) {
     console.error("Chat API error:", err);
