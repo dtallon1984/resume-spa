@@ -41,16 +41,19 @@ function isMeetingRequest(obj: unknown): obj is MeetingRequestData {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    res.status(405).json({ error: "Method not allowed" });
+    return;
   }
 
   if (requestCount > 50) {
-    return res.status(429).json({ error: "Rate limit exceeded" });
+    res.status(429).json({ error: "Rate limit exceeded" });
+    return;
   }
   requestCount++;
 
   try {
     const { messages } = req.body;
+
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages,
@@ -59,26 +62,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const rawContent = String(completion.choices?.[0]?.message?.content ?? "");
     console.log("Raw model output:", rawContent);
 
-    // Try to extract JSON block if model wrapped it in ```json ... ```
-    let parsed: unknown = null;
+    let parsed: MeetingRequestData | null = null;
+    let responseMessage = rawContent;
+
+    // Attempt to parse JSON only if it looks like JSON
     const jsonFenced = rawContent.match(/```json([\s\S]*?)```/i);
     try {
-      parsed = jsonFenced ? JSON.parse(jsonFenced[1].trim()) : JSON.parse(rawContent);
-    } catch (error) {
-      console.error("Chat API JSON parse error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Something went wrong";
-      return res.status(500).json({ error: errorMessage });
+      if (jsonFenced) {
+        parsed = JSON.parse(jsonFenced[1].trim());
+        responseMessage = "";
+      } else if (rawContent.trim().startsWith("{")) {
+        parsed = JSON.parse(rawContent.trim());
+        responseMessage = "";
+      }
+    } catch (err) {
+      console.warn("Failed to parse AI JSON, returning as text:", err);
     }
 
-    // If the model requested scheduling -> validate shape and send email
-    if (isMeetingRequest(parsed)) {
+    // Handle meeting request if present
+    if (parsed && isMeetingRequest(parsed)) {
       const { name, company, role, phone, email } = parsed.data;
-     const chatHistoryHtml = (messages as { type: string; text: string }[])
-  .map(msg => `<p><b>${msg.type}:</b> ${msg.text}</p>`)
-  .join("");
+      const chatHistoryHtml = messages
+        .map((msg: { role: string; content: string }) => `<p><b>${msg.role}:</b> ${msg.content}</p>`)
+        .join("");
 
       try {
-        // Send draft email to requester
+        // 1️⃣ Send draft email to requester
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: email,
@@ -86,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           html: parsed.draftEmail,
         });
 
-        // Send detailed email to David (you) with chat history
+        // 2️⃣ Send detailed email to David (you) with chat history
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: "dtallon1984@gmail.com",
@@ -106,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           `,
         });
 
-        // Respond to frontend with simple acknowledgment
+        // 3️⃣ Respond to frontend with simple acknowledgment
         return res.status(200).json({
           message:
             "Your request for a meeting has been queued for David to review and he will get back to you shortly, thank you!",
@@ -121,11 +130,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Not a scheduling action but valid JSON — return parsed object to frontend
-    return res.status(200).json(parsed);
+    // Not a scheduling action — return raw content to frontend
+    return res.status(200).json({ message: responseMessage });
+
   } catch (err) {
     console.error("Chat API error:", err);
     const errorMessage = err instanceof Error ? err.message : "Something went wrong";
-    return res.status(500).json({ error: errorMessage });
+    res.status(500).json({ error: errorMessage });
   }
 }
