@@ -91,15 +91,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: email,
-          subject: "Your meeting request has been received",
-          html: parsed.draftEmail,
+          cc: "dtallon1984@gmail.com",
+          subject: "Your meeting request with David Tallon has been received",
+          html: `<pre>${parsed.draftEmail}</pre>`,
         });
 
         // 2️⃣ Send detailed email to David (you) with chat history
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: "dtallon1984@gmail.com",
-          cc: email,
           subject: `New Meeting Request from ${name}`,
           html: `
             <h2>New Meeting Request</h2>
