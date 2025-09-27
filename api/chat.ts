@@ -91,9 +91,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   .map(line => `<p>${line}</p>`)
   .join("");
 
-       await resend.emails.send({
+      const userEmailResult = await resend.emails.send({
   from: "onboarding@resend.dev",
-  to: email,
+  to: "schemascout@gmail.com",
   cc: "dtallon1984@gmail.com",
   subject: "Your meeting request with David Tallon has been received",
   html: `
@@ -102,6 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     </div>
   `,
 });
+console.log("Email to user result:", userEmailResult);
 
         // 2️⃣ Send detailed email to David with chat history
         await resend.emails.send({
