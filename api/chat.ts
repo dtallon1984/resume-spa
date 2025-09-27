@@ -99,7 +99,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         // 1️⃣ Send draft email to requester (CC you)
         await resend.emails.send({
-          from: "onboarding@resend.dev",
+          from: "noreply@iresumes.dev",
           to: email,
           cc: "dtallon1984@gmail.com",
           subject: "Your meeting request with David Tallon has been received",
@@ -108,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // 2️⃣ Send detailed email to you
         await resend.emails.send({
-          from: "onboarding@resend.dev",
+          from: "noreply@iresumes.dev",
           to: "dtallon1984@gmail.com",
           subject: `New Meeting Request from ${name}`,
           html: `
