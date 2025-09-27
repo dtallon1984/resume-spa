@@ -41,13 +41,11 @@ function isMeetingRequest(obj: unknown): obj is MeetingRequestData {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   if (requestCount > 50) {
-    res.status(429).json({ error: "Rate limit exceeded" });
-    return;
+    return res.status(429).json({ error: "Rate limit exceeded" });
   }
   requestCount++;
 
@@ -91,12 +89,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: email,
-          cc: "dtallon1984@gmail.com",
           subject: "Your meeting request with David Tallon has been received",
           html: `<pre>${parsed.draftEmail}</pre>`,
         });
 
-        // 2️⃣ Send detailed email to David (you) with chat history
+        // 2️⃣ Send detailed email to David with chat history
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: "dtallon1984@gmail.com",
@@ -136,6 +133,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (err) {
     console.error("Chat API error:", err);
     const errorMessage = err instanceof Error ? err.message : "Something went wrong";
-    res.status(500).json({ error: errorMessage });
+    return res.status(500).json({ error: errorMessage });
   }
 }
