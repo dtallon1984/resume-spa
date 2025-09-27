@@ -41,13 +41,11 @@ function isMeetingRequest(obj: unknown): obj is MeetingRequestData {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   if (requestCount > 50) {
-    res.status(429).json({ error: "Rate limit exceeded" });
-    return;
+    return res.status(429).json({ error: "Rate limit exceeded" });
   }
   requestCount++;
 
@@ -65,44 +63,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let parsed: unknown = null;
     const jsonFenced = rawContent.match(/```json([\s\S]*?)```/i);
     try {
-      if (jsonFenced) {
-        parsed = JSON.parse(jsonFenced[1].trim());
-      } else {
-        parsed = JSON.parse(rawContent);
-      }
+      parsed = jsonFenced ? JSON.parse(jsonFenced[1].trim()) : JSON.parse(rawContent);
     } catch (error) {
-    console.error("Chat API error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Something went wrong";
-    res.status(500).json({ error: errorMessage });
-  }
+      console.error("Chat API JSON parse error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Something went wrong";
+      return res.status(500).json({ error: errorMessage });
+    }
 
     // If the model requested scheduling -> validate shape and send email
     if (isMeetingRequest(parsed)) {
       const { name, company, role, phone, email } = parsed.data;
+     const chatHistoryHtml = (messages as { type: string; text: string }[])
+  .map(msg => `<p><b>${msg.type}:</b> ${msg.text}</p>`)
+  .join("");
+
       try {
-        const emailResult = await resend.emails.send({
-          from: "onboarding@resend.dev", // okay for testing; verify own domain for production
+        // Send draft email to requester
+        await resend.emails.send({
+          from: "onboarding@resend.dev",
+          to: email,
+          subject: "Your meeting request has been received",
+          html: parsed.draftEmail,
+        });
+
+        // Send detailed email to David (you) with chat history
+        await resend.emails.send({
+          from: "onboarding@resend.dev",
           to: "dtallon1984@gmail.com",
+          cc: email,
           subject: `New Meeting Request from ${name}`,
           html: `
-            <h2>Meeting Request</h2>
+            <h2>New Meeting Request</h2>
             <p><b>Name:</b> ${name}</p>
             <p><b>Company:</b> ${company}</p>
             <p><b>Role:</b> ${role}</p>
             <p><b>Phone:</b> ${phone}</p>
             <p><b>Email:</b> ${email}</p>
+            <h3>Draft Email Sent to Requester:</h3>
+            <pre>${parsed.draftEmail}</pre>
+            <h3>Chat History:</h3>
+            ${chatHistoryHtml}
           `,
         });
 
-        console.log("send-email success for", name, emailResult);
+        // Respond to frontend with simple acknowledgment
         return res.status(200).json({
-          message: parsed.draftEmail,
+          message:
+            "Your request for a meeting has been queued for David to review and he will get back to you shortly, thank you!",
           emailSent: true,
-          emailResult,
         });
       } catch (err) {
-        console.error("Failed to send meeting email:", err);
-        return res.status(500).json({ error: "Failed to send email", parsed });
+        console.error("Failed to send emails:", err);
+        return res.status(500).json({
+          error: "Failed to send meeting emails",
+          parsed,
+        });
       }
     }
 
@@ -111,6 +126,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (err) {
     console.error("Chat API error:", err);
     const errorMessage = err instanceof Error ? err.message : "Something went wrong";
-    res.status(500).json({ error: errorMessage });
+    return res.status(500).json({ error: errorMessage });
   }
 }
