@@ -6,6 +6,7 @@ import { Resend } from "resend";
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
+// Basic in-memory rate limiter (per function instance)
 let requestCount = 0;
 
 type MeetingRequestPayload = {
@@ -38,6 +39,33 @@ function isMeetingRequest(obj: unknown): obj is MeetingRequestData {
   );
 }
 
+// Extract JSON safely from model output
+function extractJson(raw: string): unknown | null {
+  // 1. Look for fenced block
+  const fenced = raw.match(/```json([\s\S]*?)```/i);
+  if (fenced) {
+    try {
+      return JSON.parse(fenced[1].trim());
+    } catch {
+      return null;
+    }
+  }
+
+  // 2. Look for first { ... } block
+  const firstBrace = raw.indexOf("{");
+  const lastBrace = raw.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    const possibleJson = raw.slice(firstBrace, lastBrace + 1);
+    try {
+      return JSON.parse(possibleJson);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -59,20 +87,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const rawContent = String(completion.choices?.[0]?.message?.content ?? "");
     console.log("Raw model output:", rawContent);
 
-    let parsed: MeetingRequestData | null = null;
+    const parsed = extractJson(rawContent);
 
-    try {
-      const jsonFenced = rawContent.match(/```json([\s\S]*?)```/i);
-      if (jsonFenced) {
-        parsed = JSON.parse(jsonFenced[1].trim());
-      } else if (rawContent.trim().startsWith("{") && rawContent.trim().endsWith("}")) {
-        parsed = JSON.parse(rawContent.trim());
-      }
-    } catch {
-      console.warn("Partial or invalid JSON, returning raw text to frontend.");
-    }
-
-    // ✅ If schedule_meeting JSON detected, handle emails and **do not return the JSON itself**
+    // If parsed meeting request is valid -> send emails
     if (parsed && isMeetingRequest(parsed)) {
       const { name, company, role, phone, email } = parsed.data;
       const chatHistoryHtml = messages
@@ -80,7 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .join("");
 
       try {
-        // 1️⃣ Send draft email to requester (CC to David)
+        // 1️⃣ Send draft email to requester (CC you)
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: email,
@@ -89,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           html: `<pre>${parsed.draftEmail}</pre>`,
         });
 
-        // 2️⃣ Send detailed email to David with chat history
+        // 2️⃣ Send detailed email to you
         await resend.emails.send({
           from: "onboarding@resend.dev",
           to: "dtallon1984@gmail.com",
@@ -108,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           `,
         });
 
-        // 3️⃣ Return only acknowledgment to frontend
+        // 3️⃣ Return simple acknowledgment to frontend
         return res.status(200).json({
           message:
             "Your request for a meeting has been queued for David to review and he will get back to you shortly, thank you!",
@@ -118,12 +135,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.error("Failed to send emails:", err);
         return res.status(500).json({
           error: "Failed to send meeting emails",
-          parsed,
         });
       }
     }
 
-    // Otherwise, return raw AI text (for follow-up questions)
+    // Otherwise, just return raw content for frontend display (AI can ask follow-ups)
     return res.status(200).json({ message: rawContent });
   } catch (err) {
     console.error("Chat API error:", err);
