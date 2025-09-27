@@ -86,12 +86,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       try {
         // 1️⃣ Send draft email to requester
-        await resend.emails.send({
-          from: "onboarding@resend.dev",
-          to: email,
-          subject: "Your meeting request with David Tallon has been received",
-          html: `<pre>${parsed.draftEmail}</pre>`,
-        });
+        const formattedDraftEmail = parsed.draftEmail
+  .split("\n")
+  .map(line => `<p>${line}</p>`)
+  .join("");
+
+       await resend.emails.send({
+  from: "onboarding@resend.dev",
+  to: email,
+  cc: "dtallon1984@gmail.com",
+  subject: "Your meeting request with David Tallon has been received",
+  html: `
+    <div>
+      ${formattedDraftEmail}
+    </div>
+  `,
+});
 
         // 2️⃣ Send detailed email to David with chat history
         await resend.emails.send({
