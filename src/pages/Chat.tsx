@@ -1,13 +1,13 @@
-import React from 'react';
-import ChatSection from '../components/Chat/ChatSection';
-import { profileData } from '../data/profileData';
+// Chat.tsx
+import { useLocation } from "react-router-dom";
+import ChatSection from "../components/Chat/ChatSection";
+import type { ProfileData } from "../types/profile";
 
-const Chat: React.FC = () => {
-  return (
-    <div>
-      <ChatSection profileData={profileData} />
-    </div>
-  );
-};
+function Chat({ profileData }: { profileData: ProfileData }) {
+  const location = useLocation();
+  const initialPrompt = location.state?.initialPrompt;
+
+  return <ChatSection profileData={profileData} initialPrompt={initialPrompt} />;
+}
 
 export default Chat;

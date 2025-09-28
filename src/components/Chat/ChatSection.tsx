@@ -11,9 +11,17 @@ interface ChatMessage {
 
 type ChatSectionProps = {
   profileData: ProfileData;
+  initialPrompt?: string;
 };
 
-const ChatSection: React.FC<ChatSectionProps> = ({ profileData }) => {
+const ChatSection: React.FC<ChatSectionProps> = ({ profileData, initialPrompt }) => {
+  useEffect(() => {
+  if (initialPrompt) {
+    setInputMessage(initialPrompt);
+    handleSendMessage(); // ✅ automatically send once loaded
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [initialPrompt]);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       type: 'bot',
