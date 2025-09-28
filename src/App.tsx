@@ -59,7 +59,7 @@ function App() {
          <Toaster
         toastOptions={{
           className: "w-full flex justify-center", // centers the inner toast
-          duration: 10000,
+          duration: 5000,
           position: "top-center",
         }}
       />
