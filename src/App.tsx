@@ -34,7 +34,7 @@ function App() {
         </div>
       ),
       {
-        duration: 10000,
+        duration: 5000,
         style: { background: "transparent", padding: 0 },
         position: "top-center",
       }
