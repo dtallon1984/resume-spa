@@ -122,7 +122,7 @@ const ChatSection: React.FC<ChatSectionProps> = ({ profileData, initialPrompt })
 }, [initialPrompt, handleSendMessage]);
 
   return (
-    <div className="bg-white rounded-xl shadow-lg h-[600px] flex flex-col">
+    <div className="bg-white rounded-xl shadow-lg flex flex-col h-[80vh]">
       {/* Header */}
       <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-xl">
         <div className="flex justify-between items-start">
