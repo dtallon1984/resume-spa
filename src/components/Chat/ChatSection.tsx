@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, Send, Loader2, AlertTriangle } from 'lucide-react';
 import { useOpenAIProtectedChat } from '../../hooks/useOpenAIChat';
 import type { ProfileData } from '../../types/profile';
@@ -15,13 +15,7 @@ type ChatSectionProps = {
 };
 
 const ChatSection: React.FC<ChatSectionProps> = ({ profileData, initialPrompt }) => {
-  useEffect(() => {
-  if (initialPrompt) {
-    setInputMessage(initialPrompt);
-    handleSendMessage(); // ✅ automatically send once loaded
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [initialPrompt]);
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       type: 'bot',
@@ -49,10 +43,11 @@ const ChatSection: React.FC<ChatSectionProps> = ({ profileData, initialPrompt })
   const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+ const handleSendMessage = useCallback(async (messageToSend?: string) => {
+  const msg = messageToSend ?? inputMessage; // use argument if provided
+  if (!msg.trim() || isLoading) return;
 
-    setError(null);
+  setError(null);
 
     // Client-side validation
     const messageValidation = validateMessage(inputMessage);
@@ -138,7 +133,13 @@ const ChatSection: React.FC<ChatSectionProps> = ({ profileData, initialPrompt })
 
 
     setInputMessage('');
-  };
+  },[inputMessage, isLoading, validateMessage, checkRateLimit, recordMessage, createSystemPrompt, messages]);
+
+  useEffect(() => {
+  if (initialPrompt) {
+    handleSendMessage(initialPrompt); // auto-send
+  }
+}, [initialPrompt, handleSendMessage]);
 
   return (
     <div className="bg-white rounded-xl shadow-lg h-[600px] flex flex-col">
@@ -235,7 +236,7 @@ const ChatSection: React.FC<ChatSectionProps> = ({ profileData, initialPrompt })
             className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100 transition-all"
           />
           <button 
-            onClick={handleSendMessage}
+            onClick={() => handleSendMessage()}
             disabled={isLoading || !inputMessage.trim() || isRateLimited}
             className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
