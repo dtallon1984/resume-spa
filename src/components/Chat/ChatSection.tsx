@@ -38,80 +38,80 @@ const ChatSection: React.FC<ChatSectionProps> = ({ profileData, initialPrompt })
   const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
 
-  const handleSendMessage = useCallback(async (messageToSend?: string) => {
-    const message = messageToSend ?? inputMessage;
-    if (!message.trim() || isLoading) return;
+ const handleSendMessage = useCallback(async (messageToSend?: string) => {
+  const message = messageToSend ?? inputMessage;
+  if (!message.trim() || isLoading) return;
 
-    setError(null);
+  setError(null);
 
-    // Validation
-    const messageValidation = validateMessage(messageToSend ?? inputMessage);
-    if (!messageValidation.valid) {
-      setError(messageValidation.reason!);
-      return;
-    }
+  const messageValidation = validateMessage(message);
+  if (!messageValidation.valid) {
+    setError(messageValidation.reason!);
+    return;
+  }
 
-    // Rate limit
-    const rateLimitCheck = checkRateLimit();
-    if (!rateLimitCheck.allowed) {
-      setError(rateLimitCheck.reason!);
-      return;
-    }
+  const rateLimitCheck = checkRateLimit();
+  if (!rateLimitCheck.allowed) {
+    setError(rateLimitCheck.reason!);
+    return;
+  }
 
-    const userMessage: ChatMessage = {
-      type: 'user',
-      text: message,
-      timestamp: new Date()
+  const userMessage: ChatMessage = {
+    type: 'user',
+    text: message,
+    timestamp: new Date(),
+  };
+
+  // Add user message immediately
+  setMessages(prev => [...prev, userMessage]);
+  setInputMessage('');
+  recordMessage();
+  setIsLoading(true);
+
+  try {
+    const conversationHistory = messages.slice(-8).map(msg => ({
+      role: msg.type === 'user' ? 'user' : 'assistant',
+      content: msg.text,
+    }));
+
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: createSystemPrompt() },
+          ...conversationHistory,
+          { role: 'user', content: message },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Request failed');
+
+    const botMessage: ChatMessage = {
+      type: 'bot',
+      text: data.message || data.fallback || 'Sorry, I had trouble processing that.',
+      timestamp: new Date(),
     };
-
-    setMessages(prev => [...prev, userMessage]);
-    recordMessage();
-    setIsLoading(true);
-
-    try {
-      const conversationHistory = messages.slice(-8).map(msg => ({
-        role: msg.type === 'user' ? 'user' : 'assistant',
-        content: msg.text
-      }));
-
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            { role: 'system', content: createSystemPrompt() },
-            ...conversationHistory,
-            { role: 'user', content: message }
-          ]
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Request failed');
-
-      const botMessage: ChatMessage = {
-        type: 'bot',
-        text: data.message || data.fallback || 'Sorry, I had trouble processing that.',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botMessage]);
-      setInputMessage('');
-
-    } catch (err: unknown) {
-      console.error("Chat error:", err);
-      const errorMessage = err instanceof Error
+    setMessages(prev => [...prev, botMessage]);
+  } catch (err: unknown) {
+    console.error("Chat error:", err);
+    const errorMessage =
+      err instanceof Error
         ? err.message.includes("429")
           ? "Too many requests. Please wait a moment and try again."
           : err.message.includes("400")
-            ? "Please rephrase your question more clearly."
-            : "Sorry, something went wrong."
+          ? "Please rephrase your question more clearly."
+          : "Sorry, something went wrong."
         : "Sorry, something went wrong.";
+    setMessages(prev => [...prev, { type: "system", text: errorMessage, timestamp: new Date() }]);
+  } finally {
+    setIsLoading(false);
+  }
+}, [inputMessage, isLoading, messages, validateMessage, checkRateLimit, recordMessage, createSystemPrompt]);
 
-      setMessages(prev => [...prev, { type: "system", text: errorMessage, timestamp: new Date() }]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [inputMessage, isLoading, messages, validateMessage, checkRateLimit, recordMessage, createSystemPrompt]);
+
 
   // Auto-send initial prompt
  useEffect(() => {
