@@ -81,7 +81,7 @@ skills: [
   experience: [
     {
       company: "BDP International / PSA Group",
-      position: "Engineering Director",
+      position: "Principal Enterprise Architect & Engineering Manager ",
       duration: "Aug 2021 - Present",
       description: "Led a cross-functional team integrating multiple internal platforms across legacy and new client systems, ensuring seamless transitions and high customer satisfaction.",
       achievements: ["Delivered cloud-native technology solutions that cut costs and met SLA commitments.", "Maintained high customer satisfaction throughout platform migrations.", "Guided a multi-team engineering group across diverse products.", "Built a real-time analytics platform and implemented CI/CD pipelines."]
